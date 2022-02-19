@@ -1,4 +1,4 @@
-; Archivo:	Prelab4.s
+; Archivo:	Lab4.s
 ; Dispositivo:	PIC16F887
 ; Autor:	Carolina Paz 20719
 ; Compilador:	pic-as (v2.30), MPLABX V5.40
@@ -7,7 +7,7 @@
 ; Hardware:	Botones en RB0 y RB7
 ;
 ; Creado:	13 feb, 2022
-; Última modificación: 14 feb, 2022
+; Última modificación: 18 feb, 2022
     
 PROCESSOR 16F887
     
@@ -32,8 +32,8 @@ PROCESSOR 16F887
 
 Timer_reset MACRO TMR_VAR
     BANKSEL TMR0	    ; cambiamos de banco
-    MOVLW   TMR_VAR
-    MOVWF   TMR0	    ; configur¿ tiempo de retardo
+    MOVLW   TMR_VAR	    
+    MOVWF   TMR0	    ; configura tiempo de retardo (10ms de retardo)
     BCF	    T0IF	    ; limpiamos bandera de interrupción
     ENDM 
   
@@ -67,11 +67,11 @@ PUSH:
     MOVWF   STATUS_TEMP	    ; Guardamos STATUS
     
 ISR:
-    BTFSC   RBIF
-    CALL    INT_ONC
+    BTFSC   RBIF	    ; Verificamos bandera del puertoB
+    CALL    INT_ONC	    ; Llamar a su subrutina de interrupción correspondiente
     
-    BTFSC   T0IF	    
-    CALL    INT_TMR0	    
+    BTFSC   T0IF	    ; Verificamos bandera del TMR0
+    CALL    INT_TMR0	    ; Llamar a su subrutina de interrupción correspondiente
      
 POP:
     SWAPF   STATUS_TEMP, W  
@@ -88,23 +88,24 @@ ORG 100h                  ; posición 100h para el codigo
 INT_ONC:
     BANKSEL PORTB
     BTFSS   PORTB, UP	  ; Ver si botón ya no está presionado
-    INCF    PORTA  
+    INCF    PORTA	  ; Incrementar el puertoA
     BTFSS   PORTB, DOWN	  ; Ver si botón ya no está presionado
-    DECF    PORTA  
-    BCF     RBIF
+    DECF    PORTA	  ; Decrementar el puertoA
+    BCF     RBIF	  ; Limpiar la Bandera del puerto B
     RETURN
      
 INT_TMR0:
-    Timer_reset	217
-    CALL        Unidades
-    CALL        Decenas
-    INCF	cont
-    MOVF	cont, W	
-    SUBLW	100	    
-    BTFSS	STATUS, 2
-    RETURN
-    CALL        Display1
-    CLRF	cont
+    Timer_reset	217	    ; Llamar la macro del Timer_reset
+    CALL        Unidades    ; Llamar a la subrutina Unidades
+    CALL        Decenas	    ; Lammar a la subrutina Decenas 
+    INCF	cont	    ; Incrementar contador
+    MOVF	cont, W	    ; Mover el valor al registro W
+    SUBLW	100	    ; Restarle 100 al registro
+    BTFSS	STATUS, 2   ; Se verifica si la bandera de zero está encendida
+    RETURN		    ; Si es 0  
+    CALL        Display1    ; Si es 1
+    CLRF	cont	    ; Limpiar contador
+    BCF         T0IF	    ; Limpiar la Bandera del TMR0
     RETURN
 
 ;-----------Tablas---------------------------
@@ -136,25 +137,21 @@ Tabla2:
    RETLW   01001111B	  ; ASCII char 3
    RETLW   01100110B	  ; ASCII char 4
    RETLW   01101101B	  ; ASCII char 5
-   ;RETLW   01111101B	  ; ASCII char 6
-   ;RETLW   00000111B	  ; ASCII char 7
-   ;RETLW   01111111B	  ; ASCII char 8
-   ;RETLW   01101111B	  ; ASCII char 9
    RETLW   00111111B	  ; ASCII char 0
    
 
 ;------------- CONFIGURACION -----------------
 Main:
-    CALL    IO_config	  ; Configuración de I/O
+    CALL    IO_config	   ; Configuración de I/O
     CALL    Reloj_config   ; Configuración de Oscilador
     CALL    Timer0_config  ; Configuración de TMR0
-    CALL    ONC_config
-    CALL    INT_config
+    CALL    ONC_config	   ; Configuración del on-change
+    CALL    INT_config	   ; Configuración de las interrupciones
     BANKSEL PORTB
        
 ;----------------loop principal-----------------
 Loop:
-    goto Loop
+    goto Loop		    ; Loop 
     
 ;------------- SUBRUTINAS ---------------
 IO_config:
@@ -166,22 +163,19 @@ IO_config:
     CLRF    TRISA
     MOVLW   0xF0	  ; Pasar el número a W
     MOVWF   TRISA	  ; Mover w a TRISA , definir como salida
-    BSF     TRISB, UP	  ; poner como entradas
+    BSF     TRISB, UP	  ; Poner como entradas
     BSF     TRISB, DOWN
     CLRF    TRISC	  ; Poner como salida
     CLRF    TRISD	  ; Poner como salida
     
     BCF  OPTION_REG, 7
-    BSF  WPUB, UP	;habilitar pull-ups
+    BSF  WPUB, UP	  ; Habilitar pull-ups
     BSF  WPUB, DOWN
-      
-    ;MOVLW   0xFF          ; Pasar el número a W
-    ;MOVWF   TRISB         ; Mover w a TRISB , definir como salida
-    
+          
     BANKSEL PORTA	  ; Cambiar de Banco
     CLRF    PORTA	  ; Limpiar PORTA
-    CLRF    PORTC
-    CLRF    PORTD
+    CLRF    PORTC         ; Limpiar PORTC
+    CLRF    PORTD         ; Limpiar PORTD
     RETURN
     
 Reloj_config:
@@ -192,7 +186,6 @@ Reloj_config:
    BCF	    IRCF0         ; IRCF 0 --> 110 4MHz
    RETURN
    
-
 Timer0_config:
    BANKSEL  OPTION_REG	  ; cambiamos de banco de OPTION_REG
    BCF	    T0CS	  ; Timer0 como temporizador
@@ -208,55 +201,54 @@ Timer0_config:
    RETURN 
 
 ONC_config:
-    BANKSEL TRISA
-    BSF     IOCB, UP
-    BSF     IOCB, DOWN
+    BANKSEL TRISA	  ; Cambiar de banco
+    BSF     IOCB, UP	  ; Habilitar INTERRUPT-ON-CHANGE PORTB REGISTER
+    BSF     IOCB, DOWN    ; Habilitar INTERRUPT-ON-CHANGE PORTB REGISTER
     
-    BANKSEL PORTA
-    MOVF    PORTB, W	    ; Al leer termina condición de mismatch
-    BCF     RBIF 
+    BANKSEL PORTA	  ; Cmabiar de Banco
+    MOVF    PORTB, W	  ; Al leer termina condición de mismatch
+    BCF     RBIF	  ; Limpiar la bandera de puertoB
     RETURN
    
 INT_config:
    BANKSEL INTCON
-   BSF	    GIE		    ; Habilitamos interrupciones
-   BSF	    RBIE	    ; Habilitamos interrupcion PUERTOB
-   BCF	    RBIF	    ; Limpiamos bandera de TMR0
-   BSF	    T0IE	    ; Habilitamos interrupcion TMR
-   BCF	    T0IF	    ; Limpiamos bandera de TMR0
+   BSF	    GIE		  ; Habilitamos interrupciones
+   BSF	    RBIE	  ; Habilitamos interrupcion PUERTOB
+   BCF	    RBIF	  ; Limpiamos bandera de puertoB
+   BSF	    T0IE	  ; Habilitamos interrupcion TMR0
+   BCF	    T0IF	  ; Limpiamos bandera de TMR0
    RETURN
 
 Display1:
-   INCF   cont2         ; Incrementar 1 y se almacena en el registro F
-   MOVF   cont2, W         ; mover el valor a w
+   INCF   cont2           ; Incrementar 1 y se almacena en el registro F
+   MOVF   cont2, W        ; Mover el valor a w
    CALL   Tabla	          ; Llamar a tabla
-   MOVWF  PORTD         ; resultado pasa al PORTD
+   MOVWF  PORTD           ; Resultado pasa al PORTD
    RETURN
    
 Display2:
-   INCF   cont3         ; Incrementar 1 y se almacena en el registro F
-   MOVF   cont3, W         ; mover el valor a w
-   CALL   Tabla2	          ; Llamar a tabla
-   MOVWF  PORTC        ; resultado pasa al PORTC
+   INCF   cont3           ; Incrementar 1 y se almacena en el registro F
+   MOVF   cont3, W        ; mover el valor a w
+   CALL   Tabla           ; Llamar a tabla2
+   MOVWF  PORTC           ; resultado pasa al PORTC
    RETURN
    
 Unidades:
    MOVLW   10		  ; mover una literal al registro W
-   SUBWF   cont2, W	  ; Se resta 10 del valor del contador 1
+   SUBWF   cont2, W	  ; Se resta cont del registro W
    BTFSS   STATUS, 2	  ; Se verifica si la bandera de zero está encendida
    RETURN		  ; Si es 0
-   CLRF    cont2          ; limpiar el cont1
-   CALL    Display2
+   CLRF    cont2          ; limpiar el cont2
+   CALL    Display2	  ; Llamar al Display2
    RETURN
    
 Decenas:
    MOVLW   6		  ; mover una literal al registro W
-   SUBWF   cont3, W	  ; Se resta 10 del valor del contador 1
+   SUBWF   cont3, W	  ; Se resta cont3 al registro W
    BTFSS   STATUS, 2	  ; Se verifica si la bandera de zero está encendida
    RETURN		  ; Si es 0
-   CLRF    cont3          ; limpiar el cont1
+   CLRF    cont3          ; limpiar el cont3
    RETURN  
-   
    
   
 END
