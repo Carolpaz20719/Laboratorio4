@@ -229,13 +229,13 @@ Display1:
 Display2:
    INCF   cont3           ; Incrementar 1 y se almacena en el registro F
    MOVF   cont3, W        ; mover el valor a w
-   CALL   Tabla           ; Llamar a tabla2
+   CALL   Tabla2           ; Llamar a tabla2
    MOVWF  PORTC           ; resultado pasa al PORTC
    RETURN
    
 Unidades:
    MOVLW   10		  ; mover una literal al registro W
-   SUBWF   cont2, W	  ; Se resta cont del registro W
+   SUBWF   cont2, W	  ; Se resta cont2 del registro W
    BTFSS   STATUS, 2	  ; Se verifica si la bandera de zero está encendida
    RETURN		  ; Si es 0
    CLRF    cont2          ; limpiar el cont2
